@@ -4,7 +4,7 @@
 
 ## Use
 
-```
+```text
 Usage: ./get-secret [--ssm] ID [VERSION]
 ```
 
