@@ -1,0 +1,13 @@
+Source: get-secret-linden 
+Section: unknown
+Priority: optional
+Maintainer: Platform Team <platform@lindenlab.com>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.8
+
+Package: get-secret-linden 
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: AWS secret getter 
+ get-secret-linden fetches secrets and parameters from AWS services
+ such as Secrets Manager and SSM Parameter Store.
