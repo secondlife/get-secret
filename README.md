@@ -5,7 +5,17 @@
 ## Use
 
 ```text
-Usage: ./get-secret [--ssm] ID [VERSION]
+usage: get-secret [--ssm|--secretsmanager] NAME [VERSION]
+
+Fetch values from AWS Secrets Manager and SSM Parameter Store.
+
+positional arguments:
+  NAME     secret or parameter name
+  VERSION  secret version, used by Secrets Manager only. Default = AWSCURRENT
+
+optional arguments:
+  --secretsmanager use AWS Secrets Manager (default)
+  --ssm            use SSM Parameter Store
 ```
 
 ### Notes

@@ -1,3 +1,10 @@
+get-secret-linden (0.0.2) stable; urgency=medium
+
+  * Improved help text
+  * --secretsmanager parameter added
+
+ -- Signal Linden <signal@lindenlab.com>  Sun, 04 Jul 2021 21:46:44 +0000
+
 get-secret-linden (0.0.1) stable; urgency=medium
 
   * Initial release.

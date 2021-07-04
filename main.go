@@ -9,6 +9,19 @@ import "github.com/aws/aws-sdk-go/aws/session"
 import "github.com/aws/aws-sdk-go/service/secretsmanager"
 import "github.com/aws/aws-sdk-go/service/ssm"
 
+const usage = `usage: get-secret [--ssm|--secretsmanager] NAME [VERSION]
+
+Fetch values from AWS Secrets Manager and SSM Parameter Store.
+
+positional arguments:
+  NAME     secret or parameter name
+  VERSION  secret version, used by Secrets Manager only. Default = AWSCURRENT
+
+optional arguments:
+  --secretsmanager use AWS Secrets Manager (default)
+  --ssm            use SSM Parameter Store
+`
+
 type SecretProvider interface {
 	GetSecret(i GetSecretInput) (*GetSecretOutput, error)
 }
@@ -90,10 +103,11 @@ func GetSecret(i GetSecretInput) (*GetSecretOutput, error) {
 func run(args []string, provider SecretProvider) int {
 	f := flag.NewFlagSet(args[0], flag.ExitOnError)
 	f.Usage = func() {
-		fmt.Println("Usage:", args[0], "[--ssm]", "ID", "[VERSION]")
+		fmt.Println(usage)
 	}
 
 	useSsm := f.Bool("ssm", false, "Look in SSM Parameter store instead of Secrets Manager")
+	f.Bool("secretsmanager", true, "Look in SSM Parameter store instead of Secrets Manager")
 
 	f.Parse(args[1:])
 
