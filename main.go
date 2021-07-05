@@ -106,8 +106,9 @@ func run(args []string, provider SecretProvider) int {
 		fmt.Println(usage)
 	}
 
-	useSsm := f.Bool("ssm", false, "Look in SSM Parameter store instead of Secrets Manager")
-	f.Bool("secretsmanager", true, "Look in SSM Parameter store instead of Secrets Manager")
+	// Help text not supplied as we are using a custom usage function.
+	useSsm := f.Bool("ssm", false, "")
+	f.Bool("secretsmanager", true, "")
 
 	f.Parse(args[1:])
 
