@@ -1,13 +1,14 @@
 package main
 
-import "fmt"
-import "flag"
-import "os"
-import "errors"
-import "github.com/aws/aws-sdk-go/aws"
-import "github.com/aws/aws-sdk-go/aws/session"
-import "github.com/aws/aws-sdk-go/service/secretsmanager"
-import "github.com/aws/aws-sdk-go/service/ssm"
+import (
+	"errors"
+	"flag"
+	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/ssm"
+	"os"
+)
 
 const usage = `usage: get-secret [--ssm|--secretsmanager] NAME [VERSION]
 
@@ -31,7 +32,7 @@ type ParameterStoreProvider struct{}
 type CombinedProvider struct{}
 
 func (p *SecretsManagerProvider) GetSecret(i GetSecretInput) (*GetSecretOutput, error) {
-	svc := secretsmanager.New(session.New())
+	svc := secretsmanager.New(GetAwsSession())
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId:     aws.String(i.Name),
 		VersionStage: aws.String(i.Version),
@@ -49,7 +50,7 @@ func (p *SecretsManagerProvider) GetSecret(i GetSecretInput) (*GetSecretOutput, 
 }
 
 func (p *ParameterStoreProvider) GetSecret(i GetSecretInput) (*GetSecretOutput, error) {
-	svc := ssm.New(session.New())
+	svc := ssm.New(GetAwsSession())
 	input := &ssm.GetParameterInput{
 		Name: aws.String(i.Name),
 	}
