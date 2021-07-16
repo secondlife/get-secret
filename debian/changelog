@@ -1,3 +1,11 @@
+get-secret-linden (0.1.0) stable; urgency=medium
+
+  * get-secrets will attempt to resolve AWS region using IMDS if AWS_REGION
+    and AWS_DEFAULT_REGION environment variables are not available.
+  * Added ca-certificates as a dependency in order to use IMDS
+
+ -- Signal Linden <signal@lindenlab.com>  Wed, 14 Jul 2021 19:54:28 +0000
+
 get-secret-linden (0.0.2) stable; urgency=medium
 
   * Improved help text

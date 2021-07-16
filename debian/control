@@ -7,7 +7,8 @@ Standards-Version: 3.9.8
 
 Package: get-secret-linden 
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ ca-certificates
 Description: AWS secret getter 
  get-secret-linden fetches secrets and parameters from AWS services
  such as Secrets Manager and SSM Parameter Store.
