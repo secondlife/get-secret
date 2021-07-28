@@ -53,6 +53,7 @@ func (p *ParameterStoreProvider) GetSecret(i GetSecretInput) (*GetSecretOutput, 
 	svc := ssm.New(GetAwsSession())
 	input := &ssm.GetParameterInput{
 		Name: aws.String(i.Name),
+		WithDecryption: aws.Bool(true),
 	}
 	res, err := svc.GetParameter(input)
 
