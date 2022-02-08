@@ -2,8 +2,6 @@ package main
 
 import "testing"
 
-const UnknownSource SecretSource = 50
-
 // MockProvider captures input/output for test assertions.
 type MockProvider struct {
 	Input     *GetSecretInput
@@ -51,6 +49,10 @@ func TestRunUsesSecretsManager(t *testing.T) {
 
 	args = []string{"get-secret", "secret", "version"}
 	status = run(args, provider)
+
+	if status != 0 {
+		t.Errorf("run() did not exit successfully.")
+	}
 
 	if provider.Input.Version != "version" {
 		t.Errorf("run() did not pass version")

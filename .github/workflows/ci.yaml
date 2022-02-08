@@ -1,0 +1,89 @@
+name: CI 
+
+on:
+  push:
+    tags:
+      - v*
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest 
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ~1.17
+
+      - name: Lint 
+        uses: golangci/golangci-lint-action@v2
+        with:
+          skip-go-installation: true
+          args: --timeout=5m
+      
+      - name: Test
+        run: |
+          go mod tidy
+          go test -v
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        if: success() && startsWith(github.ref, 'refs/tags/v')
+        with:
+          version: latest
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload assets
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/
+
+  Publish:
+    runs-on: [self-hosted, linux]
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Checkout secondlife/actions
+        uses: actions/checkout@v2
+        with:
+          repository: secondlife/actions
+          token: ${{ secrets.SHARED_GITHUB_TOKEN }}
+          path: _actions
+          ref: v2 
+
+      - name: Setup JFrog CLI
+        uses: ./_actions/jfrog/setup
+        with:
+          token: ${{ secrets.SHARED_JFROG_TOKEN }}
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: dist
+          path: dist
+
+      - name: Upload
+        shell: bash
+        run: |
+          cd dist
+          jfrog rt upload "*_x86_64.deb" "debian-dev/pool/main/g/" --deb="stretch,buster,bullseye/main/amd64"
+          jfrog rt upload "*_386.deb" "debian-dev/pool/main/g/" --deb="stretch,buster,bullseye/main/i386"
+          jfrog rt upload "*_amd64.deb" "debian-dev/pool/main/g/" --deb="stretch,buster,bullseye/main/amd64"
+
+      - name: Publish build
+        uses: ./_actions/jfrog/publish
+
+      - name: Promote
+        run: jfrog rt bpr debian-prod

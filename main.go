@@ -4,10 +4,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"os"
 )
 
 const usage = `usage: get-secret [--ssm|--secretsmanager] NAME [VERSION]
@@ -20,8 +21,7 @@ positional arguments:
 
 optional arguments:
   --secretsmanager use AWS Secrets Manager (default)
-  --ssm            use SSM Parameter Store
-`
+  --ssm            use SSM Parameter Store`
 
 type SecretProvider interface {
 	GetSecret(i GetSecretInput) (*GetSecretOutput, error)
@@ -52,7 +52,7 @@ func (p *SecretsManagerProvider) GetSecret(i GetSecretInput) (*GetSecretOutput, 
 func (p *ParameterStoreProvider) GetSecret(i GetSecretInput) (*GetSecretOutput, error) {
 	svc := ssm.New(GetAwsSession())
 	input := &ssm.GetParameterInput{
-		Name: aws.String(i.Name),
+		Name:           aws.String(i.Name),
 		WithDecryption: aws.Bool(true),
 	}
 	res, err := svc.GetParameter(input)
@@ -75,7 +75,7 @@ func (p *CombinedProvider) GetSecret(i GetSecretInput) (*GetSecretOutput, error)
 	case Combined:
 		return nil, errors.New("CombinedProvider.GetSecret called recursively.")
 	default:
-		return nil, errors.New(fmt.Sprintf("Unknown SecretSource %v", i.Source))
+		return nil, fmt.Errorf("Unknown SecretSource %v", i.Source)
 	}
 }
 
@@ -98,10 +98,6 @@ type GetSecretOutput struct {
 	Binary []byte
 }
 
-func GetSecret(i GetSecretInput) (*GetSecretOutput, error) {
-	return (&CombinedProvider{}).GetSecret(i)
-}
-
 func run(args []string, provider SecretProvider) int {
 	f := flag.NewFlagSet(args[0], flag.ExitOnError)
 	f.Usage = func() {
@@ -112,7 +108,10 @@ func run(args []string, provider SecretProvider) int {
 	useSsm := f.Bool("ssm", false, "")
 	f.Bool("secretsmanager", true, "")
 
-	f.Parse(args[1:])
+	err := f.Parse(args[1:])
+	if err != nil {
+		panic(err)
+	}
 
 	narg := f.NArg()
 	if narg < 1 {
