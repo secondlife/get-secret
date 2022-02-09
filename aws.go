@@ -1,11 +1,12 @@
 package main
 
 import (
+	"os"
+	"sync"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"os"
-	"sync"
 )
 
 var (
@@ -16,12 +17,16 @@ var (
 // Singleton AWS Session
 func GetAwsSession() *session.Session {
 	once.Do(func() {
-		sess = CreateAwsSession()
+		var err error
+		sess, err = CreateAwsSession()
+		if err != nil {
+			panic(err)
+		}
 	})
 	return sess
 }
 
-func CreateAwsSession() *session.Session {
+func CreateAwsSession() (*session.Session, error) {
 	// Attempt to resolve the AWS region. Region may not be automatically
 	// resolved in some environments such as in a container running on ECS.
 	region, regionPresent := os.LookupEnv("AWS_REGION")
@@ -29,13 +34,17 @@ func CreateAwsSession() *session.Session {
 		region, regionPresent = os.LookupEnv("AWS_DEFAULT_REGION")
 	}
 	if !regionPresent {
-		meta := ec2metadata.New(session.New())
+		sess, err := session.NewSession()
+		if err != nil {
+			return sess, err
+		}
+		meta := ec2metadata.New(sess)
 		if meta.Available() {
 			region, _ = meta.Region()
 		}
 	}
 
-	return session.New(&aws.Config{
+	return session.NewSession(&aws.Config{
 		Region: aws.String(region),
 	})
 }

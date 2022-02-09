@@ -1,0 +1,38 @@
+project_name: get-secret
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: get-secret
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+checksum:
+  name_template: 'checksums.txt'
+
+nfpms:
+  - id: get-secret
+    package_name: get-secret-linden
+    vendor: Linden Research, Inc.
+    homepage: https://github.com/secondlife/get-secret-cli
+    maintainer: Platform Engineering <platform@lindenlab.com>
+    description: Fetch AWS secrets and parameters
+    formats:
+      - apk
+      - deb
+      - rpm
+    section: utils
+    priority: optional
