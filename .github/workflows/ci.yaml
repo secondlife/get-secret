@@ -80,7 +80,7 @@ jobs:
           cd dist
           jfrog rt upload "*_x86_64.deb" "debian-dev/pool/main/g/" --deb="stretch,buster,bullseye/main/amd64"
           jfrog rt upload "*_386.deb" "debian-dev/pool/main/g/" --deb="stretch,buster,bullseye/main/i386"
-          jfrog rt upload "*_amd64.deb" "debian-dev/pool/main/g/" --deb="stretch,buster,bullseye/main/amd64"
+          jfrog rt upload "*_arm64.deb" "debian-dev/pool/main/g/" --deb="stretch,buster,bullseye/main/amd64"
 
       - name: Publish build
         uses: ./_actions/jfrog/publish
