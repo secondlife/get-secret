@@ -1,31 +1,47 @@
 package main
 
-import "testing"
+import (
+	"bytes"
+	"errors"
+	"flag"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"os/user"
+	"testing"
+	"text/template"
+)
 
 // MockProvider captures input/output for test assertions.
 type MockProvider struct {
-	Input     *GetSecretInput
-	Output    GetSecretOutput
-	OutputErr *error
+	Input   *GetSecretInput
+	Output  []byte
+	Secrets map[string]string
 }
 
 func CreateMockProvider() *MockProvider {
-	secret := "secret"
 	return &MockProvider{
-		Output:    GetSecretOutput{String: &secret},
-		Input:     nil,
-		OutputErr: nil,
+		Input: nil,
+		Secrets: map[string]string{
+			"secret-secretsmanager": "secret",
+			"secret-ssm":            "secret-from-ssm",
+		},
 	}
 }
 
-func (p *MockProvider) GetSecret(i GetSecretInput) (*GetSecretOutput, error) {
+func (p *MockProvider) GetSecret(i GetSecretInput) ([]byte, error) {
 	p.Input = &i
-	return &p.Output, nil
+	if secret, ok := p.Secrets[fmt.Sprintf("%s-%s", i.Name, i.Source)]; ok {
+		return []byte(secret), nil
+	}
+	return nil, errors.New("Secret not found")
 }
 
 func TestRunWithNoArguments(t *testing.T) {
+	buf := new(bytes.Buffer)
+	flag.CommandLine.SetOutput(buf)
 	args := []string{"get-secret"}
-	if run(args, CreateMockProvider()) != 2 {
+	if run(args, buf, CreateMockProvider()) != 2 {
 		t.Errorf("run() did not exit with status 2 when no parameter were given.")
 	}
 }
@@ -33,7 +49,8 @@ func TestRunWithNoArguments(t *testing.T) {
 func TestRunUsesSecretsManager(t *testing.T) {
 	args := []string{"get-secret", "secret"}
 	provider := CreateMockProvider()
-	status := run(args, provider)
+	buf := new(bytes.Buffer)
+	status := run(args, buf, provider)
 
 	if provider.Input.Source != SecretsManager {
 		t.Errorf("run() did not use Secrets Manager by default.")
@@ -48,7 +65,8 @@ func TestRunUsesSecretsManager(t *testing.T) {
 	}
 
 	args = []string{"get-secret", "secret", "version"}
-	status = run(args, provider)
+	buf = new(bytes.Buffer)
+	status = run(args, buf, provider)
 
 	if status != 0 {
 		t.Errorf("run() did not exit successfully.")
@@ -62,7 +80,8 @@ func TestRunUsesSecretsManager(t *testing.T) {
 func TestRunUsesParameterStore(t *testing.T) {
 	args := []string{"get-secret", "--ssm", "secret"}
 	provider := CreateMockProvider()
-	status := run(args, provider)
+	buf := new(bytes.Buffer)
+	status := run(args, buf, provider)
 
 	if provider.Input.Source != ParameterStore {
 		t.Errorf("run() did not use SSM Parameter Store when passed --ssm.")
@@ -70,5 +89,71 @@ func TestRunUsesParameterStore(t *testing.T) {
 
 	if status != 0 {
 		t.Errorf("run() did not exit successfully.")
+	}
+}
+
+func TestFromConf(t *testing.T) {
+	provider := &MockProvider{
+		Input: nil,
+		Secrets: map[string]string{
+			"secret1-secretsmanager": "secret1",
+			"secret2-ssm":            "secret2",
+		},
+	}
+	loader := &SecretLoader{provider}
+
+	usr, err := user.Current()
+	if err != nil {
+		t.Error(err)
+	}
+
+	confTmpl := `
+secret1 {{.Temp}}/secret1 {{.User}} {{.Group}} 0644
+secret2 {{.Temp}}/secret2 {{.User}} {{.Group}} 0644 ssm`
+
+	tmpl, err := template.New("conf").Parse(confTmpl)
+	if err != nil {
+		t.Error(err)
+	}
+
+	tmp, err := ioutil.TempDir(os.TempDir(), "get-secret-test-*")
+	if err != nil {
+		t.Error(err)
+	}
+
+	buf := new(bytes.Buffer)
+	err = tmpl.Execute(buf, struct {
+		Temp  string
+		User  string
+		Group string
+	}{
+		Temp:  tmp,
+		User:  usr.Uid,
+		Group: usr.Gid,
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer func() {
+		if err = os.RemoveAll(tmp); err != nil {
+			panic(err)
+		}
+	}()
+
+	r := bytes.NewReader(buf.Bytes())
+
+	if err = loader.FromConf(r); err != nil {
+		t.Error(err)
+	}
+
+	for _, f := range []string{"secret1", "secret2"} {
+		s, err := ioutil.ReadFile(tmp + "/" + f)
+		if err != nil {
+			t.Error(err)
+		}
+		if string(s) != f {
+			t.Errorf("Expected %s to contain %s but got %s", f, f, s)
+		}
 	}
 }
