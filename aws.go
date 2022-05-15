@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"sync"
 
@@ -17,11 +18,13 @@ var (
 // Singleton AWS Session
 func GetAwsSession() *session.Session {
 	once.Do(func() {
+		log.Println("creating AWS session")
 		var err error
 		sess, err = CreateAwsSession()
 		if err != nil {
 			panic(err)
 		}
+		log.Printf("session created in %s", *sess.Config.Region)
 	})
 	return sess
 }

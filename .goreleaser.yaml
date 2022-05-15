@@ -12,14 +12,15 @@ builds:
       - linux
       - windows
       - darwin
+    goarch:
+      - arm64
+      - amd64
 
 archives:
+  # Match uname -m output for easy retrieval
   - replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
       amd64: x86_64
+      arm64: aarch64
 checksum:
   name_template: 'checksums.txt'
 
