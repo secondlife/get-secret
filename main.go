@@ -17,8 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/ssm"
-
-	"github.com/mattn/go-isatty"
 )
 
 const usage = `usage: get-secret [--ssm|--secretsmanager|--conf] NAME [VERSION]
@@ -33,12 +31,14 @@ optional arguments:
   --secretsmanager use AWS Secrets Manager (default)
   --ssm            use SSM Parameter Store
   --conf           load secrets from configuration file ("-" for stdin)
+  --env-conf       load secrets from environment variable
   -v               show verbose logging 
   
 configuration file example:
   # source_path        destination_path                   owner group    permissions source_service
   /mitra/myapp/secrets /etc/secrets-internal/secrets.json root  www-data 0640
-  /mitra/myapp/param   /etc/secrets-internal/param.txt    root  www-data 0640        ssm`
+  /mitra/myapp/param   /etc/secrets-internal/param.txt    root  www-data 0640        ssm
+`
 
 type SecretProvider interface {
 	GetSecret(i GetSecretInput) ([]byte, error)
@@ -113,7 +113,12 @@ type SecretLoader struct {
 	provider SecretProvider
 }
 
-func (s *SecretLoader) FromConfFile(path string) error {
+func (s *SecretLoader) FromEnvConf(name string) error {
+	conf := os.Getenv(name)
+	return s.FromConf(strings.NewReader(conf))
+}
+
+func (s *SecretLoader) FromFileConf(path string) error {
 	var r io.Reader
 	if path == "-" {
 		r = os.Stdin
@@ -128,10 +133,11 @@ func (s *SecretLoader) FromConfFile(path string) error {
 }
 
 func (s *SecretLoader) FromConf(conf io.Reader) error {
-	n := 0
+	lnNum := 0
+	secretNum := 0
 	scanner := bufio.NewScanner(conf)
 	for scanner.Scan() {
-		n++
+		lnNum++
 		ln := scanner.Text()
 		// Skip comments
 		if strings.HasPrefix(ln, "#") {
@@ -143,7 +149,7 @@ func (s *SecretLoader) FromConf(conf io.Reader) error {
 			continue
 		}
 		if len(fields) < 5 {
-			return fmt.Errorf("Line %d has an incorrect number of fields. Need: NAME DST OWNER GROUP PERMISSIONS [SOURCE]", n)
+			return fmt.Errorf("Line %d has an incorrect number of fields. Need: NAME DST OWNER GROUP PERMISSIONS [SOURCE]", lnNum)
 		}
 		name := fields[0]
 		dst := fields[1]
@@ -212,7 +218,15 @@ func (s *SecretLoader) FromConf(conf io.Reader) error {
 		if err = os.Chmod(dst, fs.FileMode(mode)); err != nil {
 			return err
 		}
+		secretNum++
 	}
+
+	if secretNum > 0 {
+		log.Printf("Loaded %d secret(s)", secretNum)
+	} else {
+		log.Printf("No secrets to load")
+	}
+
 	return nil
 }
 
@@ -226,7 +240,8 @@ func run(args []string, out io.Writer, provider SecretProvider) int {
 
 	// Help text not supplied as we are using a custom usage function.
 	useSsm := f.Bool("ssm", false, "")
-	useConf := f.Bool("conf", false, "")
+	fileConf := f.Bool("conf", false, "")
+	envConf := f.Bool("env-conf", false, "")
 	verbose := f.Bool("v", false, "")
 	f.Bool("secretsmanager", true, "")
 
@@ -249,9 +264,14 @@ func run(args []string, out io.Writer, provider SecretProvider) int {
 
 	name := f.Arg(0)
 
-	if *useConf {
+	if *envConf {
 		l := &SecretLoader{provider}
-		if err = l.FromConfFile(name); err != nil {
+		if err = l.FromEnvConf(name); err != nil {
+			log.Fatal(err)
+		}
+	} else if *fileConf {
+		l := &SecretLoader{provider}
+		if err = l.FromFileConf(name); err != nil {
 			log.Fatal(err)
 		}
 	} else {
@@ -284,9 +304,5 @@ func run(args []string, out io.Writer, provider SecretProvider) int {
 }
 
 func main() {
-	ret := run(os.Args, os.Stdout, &CombinedProvider{})
-	if ret == 0 && isatty.IsTerminal(os.Stdout.Fd()) {
-		os.Stdout.Write([]byte("\n"))
-	}
-	os.Exit(ret)
+	os.Exit(run(os.Args, os.Stdout, &CombinedProvider{}))
 }

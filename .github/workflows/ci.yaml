@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   Build:
-    runs-on: ubuntu-latest 
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -21,8 +21,12 @@ jobs:
         with:
           go-version: ~1.18
 
+      - uses: secondlife/action-setup-build@v1
+        with:
+          jfrog-token: ${{ secrets.SHARED_JFROG_TOKEN }}
+
       - name: Lint 
-        uses: golangci/golangci-lint-action@v3.2.0
+        uses: secondlife-3p/golangci-lint-action@v3
         with:
           skip-go-installation: true
           args: --timeout=5m
@@ -41,46 +45,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload assets
-        uses: actions/upload-artifact@v3
+      - uses: secondlife/action-upload-packages@v1
         with:
-          name: dist
-          path: dist/
+          target: dist/*_x86_64.deb
+          deb-arch: amd64
+          deb-releases: stretch,buster,bullseye
 
-  Publish:
-    runs-on: [self-hosted, linux]
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Checkout secondlife/actions
-        uses: actions/checkout@v3
+      - uses: secondlife/action-upload-packages@v1
         with:
-          repository: secondlife/actions
-          token: ${{ secrets.SHARED_GITHUB_TOKEN }}
-          path: _actions
-          ref: v2 
-
-      - name: Setup JFrog CLI
-        uses: ./_actions/jfrog/setup
+          target: dist/*_aarch64.deb
+          deb-arch: arm64
+          deb-releases: stretch,buster,bullseye
+      
+      - uses: secondlife/action-build-docker@v1
         with:
-          token: ${{ secrets.SHARED_JFROG_TOKEN }}
+          image: secondlife/get-secret
+          platforms: linux/amd64,linux/arm64
+          jfrog-token: ${{ secrets.SHARED_JFROG_TOKEN }}
+          promote: ${{ startsWith(github.ref, 'refs/tags/v') }}
 
-      - uses: actions/download-artifact@v3
+      - uses: secondlife/action-finish-build@v1
         with:
-          name: dist
-          path: dist
-
-      - name: Upload
-        shell: bash
-        run: |
-          cd dist
-          jfrog rt upload "*_x86_64.deb" "debian-dev/pool/main/g/" --deb="stretch,buster,bullseye/main/amd64"
-          jfrog rt upload "*_aarch64.deb" "debian-dev/pool/main/g/" --deb="stretch,buster,bullseye/main/amd64"
-
-      - name: Publish build
-        uses: ./_actions/jfrog/publish
-
-      - name: Promote
-        run: jfrog rt bpr debian-prod
+          promote-if: startsWith(github.ref, 'refs/tags/v')
+          promote: debian-prod
