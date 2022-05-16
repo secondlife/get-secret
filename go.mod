@@ -3,7 +3,7 @@ module bitbucket.org/lindenlabinternal/get-secret
 go 1.18
 
 require (
-	github.com/aws/aws-sdk-go v1.44.9
+	github.com/aws/aws-sdk-go v1.44.14
 	github.com/mattn/go-isatty v0.0.14
 )
 
