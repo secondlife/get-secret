@@ -18,6 +18,7 @@ optional arguments:
   --secretsmanager use AWS Secrets Manager (default)
   --ssm            use SSM Parameter Store
   --conf           load secrets from configuration file ("-" for stdin)
+  --env-conf       load secrets from environment variable
   -v               show verbose logging 
 
 configuration file example:
@@ -25,6 +26,10 @@ configuration file example:
   /mitra/myapp/secrets /etc/secrets-internal/secrets.json root  www-data 0640
   /mitra/myapp/param   /etc/secrets-internal/param.txt    root  www-data 0640        ssm`
 ```
+
+## get-secret docker image
+
+A docker image is provided for 
 
 ### Notes
 
