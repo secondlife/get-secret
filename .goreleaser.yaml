@@ -28,7 +28,7 @@ nfpms:
   - id: get-secret
     package_name: get-secret-linden
     vendor: Linden Research, Inc.
-    homepage: https://github.com/secondlife/get-secret-cli
+    homepage: https://github.com/secondlife/get-secret
     maintainer: Platform Engineering <platform@lindenlab.com>
     description: Fetch AWS secrets and parameters
     formats:

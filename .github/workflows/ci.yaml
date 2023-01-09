@@ -28,7 +28,6 @@ jobs:
       - name: Lint 
         uses: secondlife-3p/golangci-lint-action@v3
         with:
-          skip-go-installation: true
           args: --timeout=5m
       
       - name: Test
@@ -36,24 +35,38 @@ jobs:
           go mod tidy
           go test -v
 
+      - name: Choose GoReleaser args
+        env:
+          IS_TAG: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        id: goreleaser-args
+        run: |
+          if [[ "$IS_TAG" == "true" ]]
+          then
+            echo "Building for a tag: do a fully regular gorelease" >&2
+            echo "value=" >> $GITHUB_OUTPUT
+          else
+            echo "Not building for a tag: do the gorelease in snapshot mode" >&2
+            echo "value=--snapshot" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
-        if: success() && startsWith(github.ref, 'refs/tags/v')
+        uses: goreleaser/goreleaser-action@v4
         with:
           version: latest
-          args: release --rm-dist
+          args: release ${{ steps.goreleaser-args.outputs.value }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: secondlife/action-upload-packages@v1
         with:
-          target: dist/*_x86_64.deb
+          target: dist/*_amd64.deb
           deb-arch: amd64
           deb-releases: stretch,buster,bullseye
 
       - uses: secondlife/action-upload-packages@v1
         with:
-          target: dist/*_aarch64.deb
+          target: dist/*_arm64.deb
           deb-arch: arm64
           deb-releases: stretch,buster,bullseye
       
@@ -66,5 +79,5 @@ jobs:
 
       - uses: secondlife/action-finish-build@v1
         with:
-          promote-if: startsWith(github.ref, 'refs/tags/v')
+          promote-if: ${{ startsWith(github.ref, 'refs/tags/v') }}
           promote: debian-prod
