@@ -119,17 +119,17 @@ func (s *SecretLoader) FromEnvConf(name string) error {
 }
 
 func (s *SecretLoader) FromFileConf(path string) error {
-	var r io.Reader
+	log.Printf("Loading configuration from %s", path)
 	if path == "-" {
-		r = os.Stdin
+		return s.FromConf(os.Stdin)
 	} else {
 		r, err := os.Open(path)
 		if err != nil {
 			return fmt.Errorf("Unable to open %s", path)
 		}
 		defer r.Close()
+		return s.FromConf(r)
 	}
-	return s.FromConf(r)
 }
 
 func (s *SecretLoader) FromConf(conf io.Reader) error {
@@ -139,6 +139,7 @@ func (s *SecretLoader) FromConf(conf io.Reader) error {
 	for scanner.Scan() {
 		lnNum++
 		ln := scanner.Text()
+		log.Println(ln)
 		// Skip comments
 		if strings.HasPrefix(ln, "#") {
 			continue
