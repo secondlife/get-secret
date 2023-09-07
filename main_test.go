@@ -141,9 +141,13 @@ secret2 {{.Temp}}/secret2 {{.User}} {{.Group}} 0644 ssm`
 		}
 	}()
 
-	r := bytes.NewReader(buf.Bytes())
+	// Write conf to a file
+	conf := tmp + "/secrets.conf"
+	if err = os.WriteFile(conf, buf.Bytes(), 0644); err != nil {
+		t.Error(err)
+	}
 
-	if err = loader.FromConf(r); err != nil {
+	if err = loader.FromFileConf(conf); err != nil {
 		t.Error(err)
 	}
 
