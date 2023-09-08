@@ -62,13 +62,11 @@ jobs:
         with:
           target: dist/*_amd64.deb
           deb-arch: amd64
-          deb-releases: stretch,buster,bullseye
 
       - uses: secondlife/action-upload-packages@v1
         with:
           target: dist/*_arm64.deb
           deb-arch: arm64
-          deb-releases: stretch,buster,bullseye
       
       - uses: secondlife/action-build-docker@v1
         with:
