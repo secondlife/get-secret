@@ -2,7 +2,10 @@ module github.com/secondlife/get-secret
 
 go 1.18
 
-require github.com/aws/aws-sdk-go v1.45.15
+require (
+	github.com/aws/aws-sdk-go v1.45.19
+	golang.org/x/sys v0.12.0
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

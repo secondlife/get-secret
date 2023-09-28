@@ -109,6 +109,84 @@ type GetSecretInput struct {
 	Source  string
 }
 
+type CopySecretInput struct {
+	Name   string
+	Dest   string
+	Uid    string
+	Gid    string
+	Mode   int64
+	Source string
+}
+
+// ConfLineFromStr parses whitespace separated CopySecretInput fields from a string.
+// This is used as part of get-secret configuration file parsing.
+func CopySecretInputFromStr(s string) (*CopySecretInput, error) {
+	fields := strings.Fields(s)
+
+	if len(fields) == 0 {
+		return nil, nil
+	}
+
+	if len(fields) < 5 {
+		return nil, fmt.Errorf("ConfLineFromStr: Incorrect number of fields. Need: NAME DST OWNER GROUP PERMISSIONS [SOURCE]")
+	}
+
+	// Default to secretsmanager
+	source := SecretsManager
+	if len(fields) > 5 {
+		source = fields[5]
+	}
+
+	// Parse octal
+	mode, err := strconv.ParseInt(fields[4], 8, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	// Lookup user by name or id
+	username := fields[2]
+	owner, err := user.Lookup(username)
+	switch err.(type) {
+	case nil:
+		break
+	case user.UnknownUserError:
+		if owner, err = user.LookupId(username); err != nil {
+			if _, ok := err.(*strconv.NumError); ok {
+				return nil, user.UnknownUserError(username)
+			}
+			return nil, err
+		}
+	default:
+		return nil, err
+	}
+
+	// Lookup group by name or id
+	groupname := fields[3]
+	group, err := user.LookupGroup(groupname)
+	switch err.(type) {
+	case nil:
+		break
+	case user.UnknownGroupError:
+		if group, err = user.LookupGroupId(groupname); err != nil {
+			if _, ok := err.(*strconv.NumError); ok {
+				return nil, user.UnknownGroupError(groupname)
+			}
+			return nil, err
+		}
+	default:
+		return nil, err
+	}
+
+	return &CopySecretInput{
+		Name:   fields[0],
+		Dest:   fields[1],
+		Uid:    owner.Uid,
+		Gid:    group.Gid,
+		Mode:   mode,
+		Source: source,
+	}, nil
+}
+
 type SecretLoader struct {
 	provider SecretProvider
 }
@@ -132,6 +210,39 @@ func (s *SecretLoader) FromFileConf(path string) error {
 	}
 }
 
+// Copy a secret from secretsmanager or ssm to a local file with the specified permissions.
+func (s *SecretLoader) CopySecret(in CopySecretInput) error {
+	// Pull secret
+	res, err := s.provider.GetSecret(GetSecretInput{
+		Name:    in.Name,
+		Version: AWSCURRENT,
+		Source:  in.Source,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Write to file
+	f, err := os.Create(in.Dest)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err = f.Write(res); err != nil {
+		return err
+	}
+
+	// Set permissions
+	if err = chown(in.Dest, in.Uid, in.Gid); err != nil {
+		return err
+	}
+	if err = os.Chmod(in.Dest, fs.FileMode(in.Mode)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SecretLoader) FromConf(conf io.Reader) error {
 	lnNum := 0
 	secretNum := 0
@@ -144,81 +255,20 @@ func (s *SecretLoader) FromConf(conf io.Reader) error {
 		if strings.HasPrefix(ln, "#") {
 			continue
 		}
-		fields := strings.Fields(ln)
+
+		in, err := CopySecretInputFromStr(ln)
+		if err != nil {
+			return err
+		}
 		// Skip empty lines
-		if len(fields) == 0 {
+		if in == nil {
 			continue
 		}
-		if len(fields) < 5 {
-			return fmt.Errorf("Line %d has an incorrect number of fields. Need: NAME DST OWNER GROUP PERMISSIONS [SOURCE]", lnNum)
-		}
-		name := fields[0]
-		dst := fields[1]
-		username := fields[2]
-		groupname := fields[3]
-		perms := fields[4]
-		src := SecretsManager
-		if len(fields) > 5 {
-			src = fields[5]
-		}
 
-		res, err := s.provider.GetSecret(GetSecretInput{
-			Name:    name,
-			Version: AWSCURRENT,
-			Source:  src,
-		})
-		if err != nil {
+		if err = s.CopySecret(*in); err != nil {
 			return err
 		}
 
-		f, err := os.Create(dst)
-		if err != nil {
-			return err
-		}
-		if _, err = f.Write(res); err != nil {
-			return err
-		}
-		f.Close()
-
-		// Lookup user by name or id
-		owner, err := user.Lookup(username)
-		if err != nil {
-			if owner, err = user.LookupId(username); err != nil {
-				return fmt.Errorf("unknown user or uid %s", username)
-			}
-		}
-
-		// Lookup group by name or id
-		group, err := user.LookupGroup(groupname)
-		if err != nil {
-			if group, err = user.LookupGroupId(groupname); err != nil {
-				return fmt.Errorf("unknown group or gid %s", groupname)
-			}
-		}
-
-		uid, err := strconv.Atoi(owner.Uid)
-		if err != nil {
-			return err
-		}
-
-		gid, err := strconv.Atoi(group.Gid)
-		if err != nil {
-			return err
-		}
-		if err = os.Chown(dst, uid, gid); err != nil {
-			return err
-		}
-
-		// Parse octal
-		mode, err := strconv.ParseInt(perms, 8, 64)
-		if err != nil {
-			return err
-		}
-
-		// Set permissions
-		if err = os.Chmod(dst, fs.FileMode(mode)); err != nil {
-			return err
-		}
 		secretNum++
 	}
 

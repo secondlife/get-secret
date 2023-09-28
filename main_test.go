@@ -5,9 +5,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
+	"path/filepath"
 	"testing"
 	"text/template"
 )
@@ -116,9 +116,15 @@ secret2 {{.Temp}}/secret2 {{.User}} {{.Group}} 0644 ssm`
 		t.Error(err)
 	}
 
-	tmp, err := ioutil.TempDir(os.TempDir(), "get-secret-test-*")
+	tmp, err := os.MkdirTemp(os.TempDir(), "get-secret-test-*")
 	if err != nil {
 		t.Error(err)
+	}
+
+	username := usr.Username
+	test_user := os.Getenv("TEST_USER")
+	if test_user != "" {
+		username = test_user
 	}
 
 	buf := new(bytes.Buffer)
@@ -128,7 +134,7 @@ secret2 {{.Temp}}/secret2 {{.User}} {{.Group}} 0644 ssm`
 		Group string
 	}{
 		Temp:  tmp,
-		User:  usr.Uid,
+		User:  username,
 		Group: usr.Gid,
 	})
 	if err != nil {
@@ -142,7 +148,7 @@ secret2 {{.Temp}}/secret2 {{.User}} {{.Group}} 0644 ssm`
 	}()
 
 	// Write conf to a file
-	conf := tmp + "/secrets.conf"
+	conf := filepath.Join(tmp, "secrets.conf")
 	if err = os.WriteFile(conf, buf.Bytes(), 0644); err != nil {
 		t.Error(err)
 	}
@@ -152,7 +158,7 @@ secret2 {{.Temp}}/secret2 {{.User}} {{.Group}} 0644 ssm`
 	}
 
 	for _, f := range []string{"secret1", "secret2"} {
-		s, err := ioutil.ReadFile(tmp + "/" + f)
+		s, err := os.ReadFile(filepath.Join(tmp, f))
 		if err != nil {
 			t.Error(err)
 		}
