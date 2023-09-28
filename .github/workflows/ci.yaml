@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    tags: [v*]
+    tags: [v*.*.*]
     branches: [main]
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   Build:
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest 
     steps:
       - uses: actions/checkout@v3
         with:
@@ -19,11 +19,7 @@ jobs:
 
       - uses: actions/setup-go@v3
         with:
-          go-version: ~1.18
-
-      - uses: secondlife/action-setup-build@v1
-        with:
-          jfrog-token: ${{ secrets.SHARED_JFROG_TOKEN }}
+          go-version: ~1.21
 
       - name: Lint 
         uses: secondlife-3p/golangci-lint-action@v3
@@ -35,47 +31,10 @@ jobs:
           go mod tidy
           go test -v
 
-      - name: Choose GoReleaser args
-        env:
-          IS_TAG: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        id: goreleaser-args
-        run: |
-          if [[ "$IS_TAG" == "true" ]]
-          then
-            echo "Building for a tag: do a fully regular gorelease" >&2
-            echo "value=" >> $GITHUB_OUTPUT
-          else
-            echo "Not building for a tag: do the gorelease in snapshot mode" >&2
-            echo "value=--snapshot" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
           version: v1.18.2 # https://goreleaser.com/deprecations/#archivesreplacements 
-          args: release ${{ steps.goreleaser-args.outputs.value }}
+          args: release ${{ startsWith(github.ref, 'refs/tags/v') || '--snapshot' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: secondlife/action-upload-packages@v1
-        with:
-          target: dist/*_amd64.deb
-          deb-arch: amd64
-
-      - uses: secondlife/action-upload-packages@v1
-        with:
-          target: dist/*_arm64.deb
-          deb-arch: arm64
-      
-      - uses: secondlife/action-build-docker@v1
-        with:
-          image: secondlife/get-secret
-          platforms: linux/amd64,linux/arm64
-          jfrog-token: ${{ secrets.SHARED_JFROG_TOKEN }}
-          promote: ${{ startsWith(github.ref, 'refs/tags/v') }}
-
-      - uses: secondlife/action-finish-build@v1
-        with:
-          promote-if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-          promote: debian-prod
