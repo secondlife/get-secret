@@ -50,6 +50,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v4
         with:
           version: v1.18.2 # https://goreleaser.com/deprecations/#archivesreplacements 
-          args: ${{ steps.goreleaser-args.outputs.value }}
+          args: release ${{ steps.goreleaser-args.outputs.value }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
