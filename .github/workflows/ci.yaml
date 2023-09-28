@@ -30,11 +30,26 @@ jobs:
         run: |
           go mod tidy
           go test -v
+      
+      - name: Choose GoReleaser args
+        shell: bash
+        env:
+          IS_TAG: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        id: goreleaser-args
+        run: |
+          if [[ "$IS_TAG" == "true" ]]
+          then
+            echo "Building for a tag: do a fully regular gorelease" >&2
+            echo "value=" >> $GITHUB_OUTPUT
+          else
+            echo "Not building for a tag: do the gorelease in snapshot mode" >&2
+            echo "value=--snapshot" >> $GITHUB_OUTPUT
+          fi
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
           version: v1.18.2 # https://goreleaser.com/deprecations/#archivesreplacements 
-          args: release ${{ startsWith(github.ref, 'refs/tags/v') || '--snapshot' }}
+          args: ${{ steps.goreleaser-args.outputs.value }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
