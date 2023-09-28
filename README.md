@@ -1,7 +1,9 @@
 # get-secret 
 
 **get-secret** is a small program that gets secrets from AWS Secrets Manager
-and parameters from SSM Parameter Store.
+and parameters from SSM Parameter Store. It can be useful in containers and
+other environments where a self-contained tool for working with AWS secrets
+is desired.
 
 ## Use
 
@@ -27,13 +29,9 @@ configuration file example:
   /mitra/myapp/param   /etc/secrets-internal/param.txt    root  www-data 0640        ssm`
 ```
 
-## get-secret docker image
-
-A docker image is provided for 
-
 ### Notes
 
-If you are attempting to **get-secrets** on a machine with AWS credentials from
+If you are attempting to **get-secret** on a machine with AWS credentials from
 the environment, such as when using aws sso or awsume, then you must set
 `AWS_SDK_LOAD_CONFIG` to a truthy value for credentials loading to work. See
 [sdk-for-go's session documentation][session] for more information.
