@@ -17,10 +17,8 @@ builds:
       - amd64
 
 archives:
-  # Match uname -m output for easy retrieval
-  - replacements:
-      amd64: x86_64
-      arm64: aarch64
+  - format: tar.xz
+
 checksum:
   name_template: 'checksums.txt'
 
