@@ -26,7 +26,7 @@ optional arguments:
 configuration file example:
   # source_path        destination_path                   owner group    permissions source_service
   /mitra/myapp/secrets /etc/secrets-internal/secrets.json root  www-data 0640
-  /mitra/myapp/param   /etc/secrets-internal/param.txt    root  www-data 0640        ssm`
+  /mitra/myapp/param   /etc/secrets-internal/param.txt    root  www-data 0640        ssm
 ```
 
 ### Notes
