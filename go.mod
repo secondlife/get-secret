@@ -1,10 +1,10 @@
 module github.com/secondlife/get-secret
 
-go 1.18
+go 1.23.0
 
 require (
 	github.com/aws/aws-sdk-go v1.55.6
-	golang.org/x/sys v0.31.0
+	golang.org/x/sys v0.34.0
 )
 
 require (
