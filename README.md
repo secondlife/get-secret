@@ -29,6 +29,17 @@ configuration file example:
   /mitra/myapp/param   /etc/secrets-internal/param.txt    root  www-data 0640        ssm
 ```
 
+## Installation
+
+Grab get-secret from the Releases page or install it directly into your Docker image:
+
+```dockerfile
+FROM python:3.13-alpine
+
+ADD https://github.com/secondlife/get-secret/releases/download/v1.0.6/get-secret_1.0.6_linux_amd64.tar.xz /var/tmp
+RUN tar -xf /var/tmp/get-secret_1.0.6_linux_amd64.tar.xz -C /usr/local/bin && rm /var/tmp/get-secret_1.0.6_linux_amd64.tar.xz
+```
+
 ### Notes
 
 If you are attempting to **get-secret** on a machine with AWS credentials from
