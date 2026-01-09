@@ -32,8 +32,8 @@ optional arguments:
   --ssm            use SSM Parameter Store
   --conf           load secrets from configuration file ("-" for stdin)
   --env-conf       load secrets from environment variable
-  -v               show verbose logging 
-  
+  -v               show verbose logging
+
 configuration file example:
   # source_path        destination_path                   owner group    permissions source_service
   /mitra/myapp/secrets /etc/secrets-internal/secrets.json root  www-data 0640
