@@ -6,5 +6,9 @@ updates:
       interval: weekly
   - package-ecosystem: gomod
     directory: /
+    # Ask Dependabot not to propose regular version upgrades on its own.
+    # Dependabot will still propose PRs to fix security alerts.
+    open-pull-requests-limit: 0
+    # Even without non-security updates, `schedule` is required.
     schedule:
       interval: monthly
