@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
@@ -114,7 +113,7 @@ type CopySecretInput struct {
 	Dest   string
 	Uid    string
 	Gid    string
-	Mode   int64
+	Mode   uint32
 	Source string
 }
 
@@ -138,7 +137,7 @@ func CopySecretInputFromStr(s string) (*CopySecretInput, error) {
 	}
 
 	// Parse octal
-	mode, err := strconv.ParseInt(fields[4], 8, 64)
+	mode, err := strconv.ParseUint(fields[4], 8, 32)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +181,7 @@ func CopySecretInputFromStr(s string) (*CopySecretInput, error) {
 		Dest:   fields[1],
 		Uid:    owner.Uid,
 		Gid:    group.Gid,
-		Mode:   mode,
+		Mode:   uint32(mode),
 		Source: source,
 	}, nil
 }
@@ -308,7 +307,7 @@ func run(args []string, out io.Writer, provider SecretProvider) int {
 	if *verbose {
 		log.SetOutput(out)
 	} else {
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 	}
 
 	narg := f.NArg()
