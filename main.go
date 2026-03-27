@@ -90,9 +90,9 @@ func (p *CombinedProvider) GetSecret(i GetSecretInput) ([]byte, error) {
 	case ParameterStore:
 		return (&ParameterStoreProvider{}).GetSecret(i)
 	case Combined:
-		return nil, errors.New("CombinedProvider.GetSecret called recursively.")
+		return nil, errors.New("CombinedProvider.GetSecret called recursively")
 	default:
-		return nil, fmt.Errorf("Unknown SecretSource %v", i.Source)
+		return nil, fmt.Errorf("unknown SecretSource %v", i.Source)
 	}
 }
 
@@ -203,9 +203,11 @@ func (s *SecretLoader) FromFileConf(path string) error {
 	} else {
 		r, err := os.Open(path)
 		if err != nil {
-			return fmt.Errorf("Unable to open %s", path)
+			return fmt.Errorf("unable to open %s", path)
 		}
-		defer r.Close()
+		// Defer r.Close() as an inline func so we can explicitly ignore any
+		// error it returns.
+		defer func() { _ = r.Close() }()
 		return s.FromConf(r)
 	}
 }
@@ -227,7 +229,9 @@ func (s *SecretLoader) CopySecret(in CopySecretInput) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	// Defer f.Close() as an inline func so we can explicitly ignore any error
+	// it returns.
+	defer func() { _ = f.Close() }()
 	if _, err = f.Write(res); err != nil {
 		return err
 	}
