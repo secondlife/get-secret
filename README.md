@@ -1,4 +1,4 @@
-# get-secret 
+# get-secret
 
 **get-secret** is a small program that gets secrets from AWS Secrets Manager
 and parameters from SSM Parameter Store. It can be useful in containers and
@@ -21,7 +21,7 @@ optional arguments:
   --ssm            use SSM Parameter Store
   --conf           load secrets from configuration file ("-" for stdin)
   --env-conf       load secrets from environment variable
-  -v               show verbose logging 
+  -v               show verbose logging
 
 configuration file example:
   # source_path        destination_path                   owner group    permissions source_service
