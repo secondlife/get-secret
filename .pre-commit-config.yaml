@@ -28,3 +28,7 @@ repos:
       #   * temporarily change the hook to `golangci-lint-full`, or
       #   * run the same version of golangci-lint outside of pre-commit
       - id: golangci-lint
+        # Build the hook against the Go version we're using to avoid errors like
+        # 'can't load config: the Go language version (go1.25) used to build
+        # golangci-lint is lower than the targeted Go version (1.26.1)'.
+        language_version: '1.26.1'
