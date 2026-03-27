@@ -19,6 +19,12 @@ repos:
       - id: pretty-format-json
         args: [--autofix, --indent, '4']
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.54.2
+    rev: v2.11.4
     hooks:
+      # Note that this golangci-lint hook determines for itself what files have
+      # changed, so running `pre-commit run golangci-lint --all-files` won't
+      # work as you expect. They provide the `golangci-lint-full` hook for that.
+      # To genuinely run golangci-lint against the whole project:
+      #   * temporarily change the hook to `golangci-lint-full`, or
+      #   * run the same version of golangci-lint outside of pre-commit
       - id: golangci-lint

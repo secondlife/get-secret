@@ -25,6 +25,7 @@ jobs:
         uses: secondlife-3p/golangci-lint-action@v9
         with:
           args: --timeout=5m
+          version: v2.11
 
       - name: Test
         run: |
