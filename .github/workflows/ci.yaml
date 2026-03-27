@@ -48,9 +48,10 @@ jobs:
           fi
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
-          version: v1.21.2
           args: release ${{ steps.goreleaser-args.outputs.value }}
+          # The version of goreleaser to use.
+          version: '~> v2'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
