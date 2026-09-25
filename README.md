@@ -28,12 +28,3 @@ configuration file example:
   /mitra/myapp/secrets /etc/secrets-internal/secrets.json root  www-data 0640
   /mitra/myapp/param   /etc/secrets-internal/param.txt    root  www-data 0640        ssm
 ```
-
-### Notes
-
-If you are attempting to **get-secret** on a machine with AWS credentials from
-the environment, such as when using aws sso or awsume, then you must set
-`AWS_SDK_LOAD_CONFIG` to a truthy value for credentials loading to work. See
-[sdk-for-go's session documentation][session] for more information.
-
-[session]: https://docs.aws.amazon.com/sdk-for-go/api/aws/session/

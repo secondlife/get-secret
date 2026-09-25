@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,9 +14,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
 const usage = `usage: get-secret [--ssm|--secretsmanager|--conf] NAME [VERSION]
@@ -48,13 +49,13 @@ type ParameterStoreProvider struct{}
 type CombinedProvider struct{}
 
 func (p *SecretsManagerProvider) GetSecret(i GetSecretInput) ([]byte, error) {
-	svc := secretsmanager.New(GetAwsSession())
+	client := secretsmanager.NewFromConfig(GetAwsConfig())
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId:     aws.String(i.Name),
 		VersionStage: aws.String(i.Version),
 	}
 	log.Printf("secretsmanager: getting %s", i.Name)
-	res, err := svc.GetSecretValue(input)
+	res, err := client.GetSecretValue(context.TODO(), input)
 
 	if err != nil {
 		return nil, err
@@ -67,13 +68,13 @@ func (p *SecretsManagerProvider) GetSecret(i GetSecretInput) ([]byte, error) {
 }
 
 func (p *ParameterStoreProvider) GetSecret(i GetSecretInput) ([]byte, error) {
-	svc := ssm.New(GetAwsSession())
+	client := ssm.NewFromConfig(GetAwsConfig())
 	input := &ssm.GetParameterInput{
 		Name:           aws.String(i.Name),
 		WithDecryption: aws.Bool(true),
 	}
 	log.Printf("ssm: getting %s", i.Name)
-	res, err := svc.GetParameter(input)
+	res, err := client.GetParameter(context.TODO(), input)
 
 	if err != nil {
 		return nil, err
